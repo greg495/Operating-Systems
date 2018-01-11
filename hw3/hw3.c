@@ -24,7 +24,6 @@ typedef struct // thread_info //Struct that is passed into each thread
 
 void * file_read(void * arg)
 {
-    puts("Entered thread function");
     char* path = (char*) arg;
     
     size_t len;
@@ -33,7 +32,6 @@ void * file_read(void * arg)
     
     printf("MAIN THREAD: Assigned \"%s\" to child thread %ld.\n", path, (long int)pthread_self());
     file = fopen(path, "r");
-    printf("Path is %s\n", path);
     if (file == NULL) {
         perror("Can't open a file");
         exit(EXIT_FAILURE);
@@ -41,7 +39,6 @@ void * file_read(void * arg)
     
     while ( (fscanf(file, "%s", temp_str)) != EOF)     //Gets the next word
     {
-        printf("temp_str is %s\n", temp_str);
         pthread_mutex_lock( &mutex );     /******************************/
         int i = num_words; //Locks and saves the index until writing is done, but allows other threads to choose other indices
         num_words++; //Increments global variable immediately for other threads
@@ -70,7 +67,6 @@ void * file_read(void * arg)
 }
 
 static int ptree(char * const argv[], pthread_t* tid, char** story){
-    puts("Entered ptree");
     FTS *ftsp;
     FTSENT *p, *chp;
     int fts_options = FTS_COMFOLLOW | FTS_LOGICAL | FTS_NOCHDIR;
@@ -97,13 +93,11 @@ static int ptree(char * const argv[], pthread_t* tid, char** story){
             
             if (strcmp(file_ext, ".txt") == 0) //If it's a text file
             {
-                printf("Path is %s\n", p->fts_path);
                 thread_t * thread = (thread_t *) malloc(sizeof(thread_t)); //Stores info for this new thread
                 thread->filename = (char*) calloc (20, sizeof(char)); 
                 thread->path = (char*) calloc (20, sizeof(char)); 
                 strcpy(thread->filename, p->fts_name);
                 strcpy(thread->path, p->fts_path);
-                printf("About to create thread\n");
                 rc = pthread_create( &tid[j], NULL, file_read, (void*)(p->fts_path)); //create child thread
                 if ( rc != 0 ){
                     fprintf( stderr, "pthread_create() failed (%d): %s\n", rc, strerror( rc ) );
@@ -170,7 +164,6 @@ int main(int argc, char *argv[]){
             }
         }
     }
-    printf("Found %d file(s)\n", num_files);
     pthread_t* tid = (pthread_t*) calloc(num_files, sizeof(pthread_t));   /* keep track of the thread IDs */
     
     //Call the thread making function:
@@ -180,9 +173,7 @@ int main(int argc, char *argv[]){
     }
     
     //Waits for all threads to terminate:
-    puts("Joining for loop reached");
     for(i = 0; i < num_files; i++){
-        //unsigned int * x;
         pthread_join( tid[i], NULL );    // BLOCKING CALL 
     }
     printf("MAIN THREAD: All done (successfully read %d words).\n", num_words);
