@@ -19,24 +19,18 @@ typedef struct // thread_info //Struct that is passed into each thread
 {
     char* filename; //The file name for this thread
     char* path; //The file path
-    //char** story;
     pthread_t * tid;
 } thread_t;
 
 void * file_read(void * arg)
 {
     puts("Entered thread function");
-    //thread_t * thread = (thread_t *)arg;
     char* path = (char*) arg;
-    //char** story = thread->story;
-    //pthread_t mytid = pthread_self();
-    //pthread_detach( mytid );
-
+    
     size_t len;
     char* temp_str = (char*) calloc (20, sizeof(char)); // Sets inital buffer to 20 chars
     FILE * file;
     
-    //pthread_t mytid = pthread_self();
     printf("MAIN THREAD: Assigned \"%s\" to child thread %ld.\n", path, (long int)pthread_self());
     file = fopen(path, "r");
     printf("Path is %s\n", path);
@@ -63,7 +57,6 @@ void * file_read(void * arg)
         strcpy(story[i], temp_str);
         printf("THREAD %ld: Added \"%s\" at index %d.\n", (long int) pthread_self(), temp_str, i);
     }
-    //rewind(file); // Moves file pointer back to the top of the file to read through again
     fclose (file);
     
     /* dynamically allocate space to hold a return value */
@@ -96,15 +89,11 @@ static int ptree(char * const argv[], pthread_t* tid, char** story){
     }
     while ((p = fts_read(ftsp)) != NULL) {
         if (p->fts_info == FTS_F) {
-            //printf("f %s\n", p->fts_path);
-            //pthread_t tid;   /* very similar to: pid_t pid; */
             //Takes the file extension to check file type:
             for (i = 0; i < 4; i++){ 
                 file_ext[i] = (char) (p->fts_name[(int)strlen(p->fts_name) - 4 + i]);
             }
             file_ext[4] = '\0';
-            //printf("File name is %s\n", p->fts_name);
-            //printf("File extension is %s\n", file_ext);
             
             if (strcmp(file_ext, ".txt") == 0) //If it's a text file
             {
@@ -114,8 +103,6 @@ static int ptree(char * const argv[], pthread_t* tid, char** story){
                 thread->path = (char*) calloc (20, sizeof(char)); 
                 strcpy(thread->filename, p->fts_name);
                 strcpy(thread->path, p->fts_path);
-                //thread->size_ptr = size_ptr;
-                //thread->words_ptr = i;
                 printf("About to create thread\n");
                 rc = pthread_create( &tid[j], NULL, file_read, (void*)(p->fts_path)); //create child thread
                 if ( rc != 0 ){
@@ -131,7 +118,6 @@ static int ptree(char * const argv[], pthread_t* tid, char** story){
 }
 
 int main(int argc, char *argv[]){
-    //argv[1] is the name of directory containing the input files, argv[2] is the word to search for
     story = (char**) calloc(array_size, sizeof(char*)); //Initially allocates the array itself
     int num_files = 0;
     int i = 0; // for loop index
@@ -147,7 +133,6 @@ int main(int argc, char *argv[]){
     }
     
 
-    //story = (char**) calloc(array_size, sizeof(char*)); 
     for (i = 0; i < array_size; i++)
     {
         story[i] = (char*) calloc(1, sizeof(char)); // Initially allocates each word
@@ -199,33 +184,9 @@ int main(int argc, char *argv[]){
     for(i = 0; i < num_files; i++){
         //unsigned int * x;
         pthread_join( tid[i], NULL );    // BLOCKING CALL 
-        //&x is the return value from pthread_exit() 
-        /*printf( "MAIN THREAD: Joined a child thread that returned %u.\n", *x );
-        free( x );*/
     }
     printf("MAIN THREAD: All done (successfully read %d words).\n", num_words);
-    /*for(j = 0; j < array_size; j++)
-    {
-        printf("%s ", story[j]);
-    }*/
-    /*
-    printf("MAIN THREAD: Words containing \"%s\" are:\n", argv[2]);
-    for(j = 0; j < i; j++)
-    {
-        if (strstr(story[j], argv[2]))
-        {
-            printf("MAIN THREAD: ");
-            for (k = 0; k < strlen(story[j]); k++){
-                if ((story[j][k] != ',') & (story[j][k] != '.') & (story[j][k] != '!') & 
-                (story[j][k] != '?') & (story[j][k] != ':') & (story[j][k] != ';') & (story[j][k] != '"') & (story[j][k] != '\n'))
-                {
-                    printf("%c", story[j][k]);
-                }
-            }
-            printf("\n");
-        }
-    }
-    */
+    
     //Deallocate:
     
     for (i = 0; i < array_size; i++)
