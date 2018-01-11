@@ -51,7 +51,6 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
   {
     /* can also use read() and write()..... */
     char buffer[ BUFFER_SIZE ];
-    //printf("reached first recv\n");
     fflush(NULL);
     n = recv( newsock, buffer, BUFFER_SIZE, 0 );
     fflush(NULL);
@@ -66,36 +65,30 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
       full_command = (char*) calloc(n+1, sizeof(char));
       memcpy(full_command, buffer, n+1); //Converts char array to char * for using string operations
       
-      //char* command = (char*) calloc(10, sizeof(char));
       char* filename = (char*) calloc(20, sizeof(char));
       int size = 0, offset = 0;
       char* temp_str = (char*) calloc(50, sizeof(char));
       
       char * pch;
-			pch = strchr(buffer,'\n');
-			int loc = 0;
-			while (pch!=NULL)
-			{
-			    loc = pch-buffer+1;
-			    break;
-			}
-			//printf("%d\n", loc);
+      pch = strchr(buffer,'\n');
+      int loc = 0;
+      while (pch!=NULL)
+      {
+          loc = pch-buffer+1;
+          break;
+      }
+      
+      //split the array beforehand
+      char command[loc];
+      int lpe = 0;
+      for(lpe = 0; lpe < loc - 1;lpe++){
+      	command[lpe] = buffer[lpe];
+      }
 
-			//split the array beforehand
-			char command[loc];
-			int lpe = 0;
-			for(lpe = 0; lpe < loc - 1;lpe++){
-				command[lpe] = buffer[lpe];
-			}
-
-			command[loc] = '\0';
+      command[loc] = '\0';
 
       k = sscanf(full_command, "%s %s", command, temp_str); //Gets the type of command: "STORE", "LIST", "READ", or garbage
-      /*if (n < 0) {
-        printf("[%s]\n", full_command);
-        fflush(NULL);
-        continue;}*/
-      //printf("n is %d (top)\n", n);
+      
       if (strcmp(command, "STORE") == 0){
         temp_str = (char*) calloc(70, sizeof(char));
         //Format is: STORE <filename> <bytes>\n<file-contents>
@@ -116,7 +109,6 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
         fflush( stdout );
         
         for (k = 0; k < num_files; k++){
-          //printf("%s\n", files[n].name);
           if (strcmp(files[k].name, filename) == 0){
             offset = 1; //Marks that the file already exists
           }
@@ -149,10 +141,6 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
         num_files++;
         
         //After newline, receive the next packet
-        /*n = recv( newsock, buffer, BUFFER_SIZE, 0 );
-        if ( n < 0 ){
-          perror( "recv() failed" );
-        }*/
         sprintf(temp_str, "%s/%s", dir_name, filename); //Allows storing the file in the new directory
         
         pthread_mutex_lock( &mutex );
@@ -162,19 +150,14 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
           exit(EXIT_FAILURE);
         }
         else{
-          //printf("Successfully opened %s\n", filename);
           fflush(NULL);
         }
         fwrite(buffer + loc, sizeof(char), n - loc, file); //Write the first packet to the file
-        //offset = BUFFER_SIZE - (n+2); //offset is now the number of bytes that have been read
+        //offset is now the number of bytes that have been read
         offset = n - loc+1;
-        //printf("%d %d\n", offset, size);
           
         while (offset < size) //If the file is larger than the given buffer, break into multiple packets
-        //while(n > 0)
         {
-          //printf("%d %d\n", offset, size);
-          //printf(" ");
           fflush(NULL);
           n = recv(newsock, buffer, ( size-offset < BUFFER_SIZE ? size-offset : BUFFER_SIZE ), 0 );
           fflush(NULL);
@@ -285,10 +268,8 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
           if ( n != strlen(temp_str) ){
             perror( "send() failed" );
           }
-          //free(file_t);
           continue;
         }
-        //free(file_t);
         
         for (n = 0; n < num_files; n++){ //Search for the file name
           if (strcmp (files[n].name, filename) == 0){
@@ -314,34 +295,8 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
           }
           
           pthread_mutex_lock( &mutex );
-          //fgets(contents, offset+1, file); //Moves the pointer to the correct place
           sprintf(buffer, "ACK %d\n", size);
-          /*n = send( newsock, buffer, strlen(buffer), 0 );
-          fflush(NULL);
-          if (n > 4){
-            printf("[child %u] Sent %s\n", tid, buffer);
-            fflush(NULL);
-          }*/
-
-          /*offset = size;
-          if ( n < 0 ){
-            perror( "send() failed" );
-          }
           
-          while (offset > 0)  //If the file is larger than the given buffer, break into multiple packets
-          {
-            if (offset > BUFFER_SIZE){
-              fgets(buffer, BUFFER_SIZE, file);
-            }
-            else{
-              fgets(buffer, offset+1, file);
-            }
-            n = send( newsock, buffer, strlen(buffer), 0 );
-            if ( n < 0 ){
-              perror( "send() failed" );
-            }
-            offset -= n;
-          }*/
           //Send the data back, assuming it's less than the buffer size:
           fseek(file, offset, SEEK_SET); //Sets file pointer to correct place
           fgets(contents, size, file);
@@ -353,7 +308,6 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
               perror( "send() failed" );
           }
             
-          //n = send( newsock, "\n", 1, 0 );
           fflush(NULL);
           if ( n < 0 ){
               perror( "send() failed" );
@@ -388,7 +342,6 @@ void * client_thread(void * arg) //Function called by pthread_create each time a
         
       }
     }
-    //printf("n is %d (bottom)\n", n);
     fflush(NULL);
   }
   while ( n > 0 );
@@ -414,7 +367,7 @@ int main(int argc, char * argv[])
         
 	if (NULL == (FD = opendir (dir_name))) 
   {
-  	perror( "opendir() failed" );
+    perror( "opendir() failed" );
     exit(EXIT_FAILURE);
   }
   chdir(dir_name);
